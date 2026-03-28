@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id       String       @id @default(cuid())
+  email    String       @unique
+  name     String
+  avatarUrl String?
+  password String?      // bcrypt hash — null for Google-only users
+  provider AuthProvider @default(LOCAL)
+
+  // Google OAuth fields (optional)
+  googleId           String?   @unique
+  googleAccessToken  String?   // AES-256-GCM encrypted
+  googleRefreshToken String?   // AES-256-GCM encrypted
+  tokenExpiresAt     DateTime?
+
+  sessions Session[]
+  messages Message[]
+  events   Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jti       String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?  @db.Text
+  location    String?
+  startDateTime DateTime
+  endDateTime   DateTime
+  allDay      Boolean  @default(false)
+  color       String   @default("#1A56DB")
+  recurrence  String?  // RRULE string
+
+  // Optional Google Calendar sync
+  googleEventId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startDateTime])
+  @@map("events")
+}
+
+model Message {
+  id     String      @id @default(cuid())
+  userId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role    MessageRole
+  content String      @db.Text
+
+  actionType    CalendarAction?
+  actionPayload Json?
+  eventId       String?   // local event ID
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum CalendarAction {
+  CREATE_EVENT
+  LIST_EVENTS
+  UPDATE_EVENT
+  DELETE_EVENT
+  NONE
+}

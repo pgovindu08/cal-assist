@@ -279,8 +279,9 @@ function syncToGoogleCalendar(
           })
         );
     })
-    .catch((err) => {
-      console.error('[Google Calendar sync] Failed for event', localEventId, err?.message, err?.response?.data ?? '');
+    .catch((err: unknown) => {
+      const e = err as Error & { response?: { data?: unknown } };
+      console.error('[Google Calendar sync] Failed for event', localEventId, e?.message, e?.response?.data ?? '');
     });
 }
 

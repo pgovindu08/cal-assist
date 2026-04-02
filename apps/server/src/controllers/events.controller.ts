@@ -84,10 +84,11 @@ export async function updateEvent(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    const { startDateTime, endDateTime, ...rest } = input.data;
     const updated = await eventsService.updateEvent(user.id, req.params.id, {
-      ...input.data,
-      ...(input.data.startDateTime && { startDateTime: new Date(input.data.startDateTime) }),
-      ...(input.data.endDateTime && { endDateTime: new Date(input.data.endDateTime) }),
+      ...rest,
+      ...(startDateTime && { startDateTime: new Date(startDateTime) }),
+      ...(endDateTime && { endDateTime: new Date(endDateTime) }),
     });
 
     sendSuccess(res, { event: updated });

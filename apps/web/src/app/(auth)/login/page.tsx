@@ -52,7 +52,7 @@ export default function LoginPage() {
           className="text-center"
         >
           <LayoutGroup>
-            <motion.p
+            <motion.div
               layout
               className="flex flex-wrap items-center justify-center gap-x-3 text-4xl font-light sm:text-5xl md:text-6xl lg:text-7xl"
             >
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 transition={{ type: "spring", damping: 30, stiffness: 400 }}
                 rotationInterval={2200}
               />
-            </motion.p>
+            </motion.div>
           </LayoutGroup>
         </motion.div>
 

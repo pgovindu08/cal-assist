@@ -24,6 +24,7 @@ async function getAuthorizedClient(userId: string) {
   });
 
   if (!user) throw new AppError('User not found', 404);
+  if (!user.googleAccessToken) throw new AppError('No Google account connected', 400, 'NO_GOOGLE_ACCOUNT');
 
   const oauth2Client = getOAuth2Client();
   const accessToken = decrypt(user.googleAccessToken);

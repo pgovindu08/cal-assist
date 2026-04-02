@@ -25,8 +25,11 @@ const envSchema = z.object({
   // Encryption
   ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes)'),
 
-  // Gemini
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  // Gemini (kept for reference, no longer used as primary AI)
+  GEMINI_API_KEY: z.string().optional(),
+
+  // Groq (primary AI provider)
+  GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY is required'),
 
   // Redis (Upstash)
   UPSTASH_REDIS_REST_URL: z.string().optional(),

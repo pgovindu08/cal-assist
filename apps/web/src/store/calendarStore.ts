@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { startOfMonth, endOfMonth, formatISO } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, formatISO } from 'date-fns';
+
+export type CalView = 'month' | 'week' | 'day';
 
 export interface CalEvent {
   id: string;
@@ -28,11 +30,17 @@ export interface CreateEventInput {
 
 interface CalendarState {
   events: CalEvent[];
+  view: CalView;
+  selectedDate: Date;
   selectedMonth: Date;
   isLoading: boolean;
+  setView: (view: CalView) => void;
+  setSelectedDate: (date: Date) => void;
   setSelectedMonth: (date: Date) => void;
   fetchEvents: (start: string, end: string) => Promise<void>;
   fetchMonthEvents: (month: Date) => Promise<void>;
+  fetchWeekEvents: (date: Date) => Promise<void>;
+  fetchDayEvents: (date: Date) => Promise<void>;
   createEvent: (input: CreateEventInput) => Promise<CalEvent>;
   updateEvent: (id: string, input: Partial<CreateEventInput>) => Promise<CalEvent>;
   deleteEvent: (id: string) => Promise<void>;
@@ -40,9 +48,13 @@ interface CalendarState {
 
 export const useCalendarStore = create<CalendarState>((set, get) => ({
   events: [],
+  view: 'month',
+  selectedDate: new Date(),
   selectedMonth: new Date(),
   isLoading: false,
 
+  setView: (view) => set({ view }),
+  setSelectedDate: (date) => set({ selectedDate: date }),
   setSelectedMonth: (date) => set({ selectedMonth: date }),
 
   fetchEvents: async (start, end) => {
@@ -61,12 +73,26 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     await get().fetchEvents(start, end);
   },
 
+  fetchWeekEvents: async (date) => {
+    const start = formatISO(startOfWeek(date));
+    const end = formatISO(endOfWeek(date));
+    await get().fetchEvents(start, end);
+  },
+
+  fetchDayEvents: async (date) => {
+    const start = formatISO(startOfDay(date));
+    const end = formatISO(endOfDay(date));
+    await get().fetchEvents(start, end);
+  },
+
   createEvent: async (input) => {
     const { data } = await api.post('/events', input);
     const newEvent: CalEvent = data.data.event;
-    set((state) => ({ events: [...state.events, newEvent].sort(
-      (a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()
-    )}));
+    set((state) => ({
+      events: [...state.events, newEvent].sort(
+        (a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()
+      ),
+    }));
     return newEvent;
   },
 

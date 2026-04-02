@@ -14,7 +14,7 @@ import { useCalendarStore, type CalEvent } from '@/store/calendarStore';
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function CalendarGrid() {
-  const { selectedMonth, events } = useCalendarStore();
+  const { selectedMonth, events, setView, setSelectedDate, fetchDayEvents } = useCalendarStore();
   const [createDate, setCreateDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null);
@@ -24,7 +24,15 @@ export function CalendarGrid() {
   const days = eachDayOfInterval({ start: startOfWeek(monthStart), end: endOfWeek(monthEnd) });
 
   const getEventsForDay = (day: Date) =>
-    events.filter((e) => isSameDay(new Date(e.startDateTime), day));
+    events
+      .filter((e) => isSameDay(new Date(e.startDateTime), day))
+      .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+
+  const goToDay = (day: Date) => {
+    setSelectedDate(day);
+    fetchDayEvents(day);
+    setView('day');
+  };
 
   return (
     <>
@@ -38,7 +46,7 @@ export function CalendarGrid() {
           ))}
         </div>
 
-        {/* Grid */}
+        {/* Grid cells */}
         <div className="grid grid-cols-7">
           {days.map((day) => {
             const dayEvents = getEventsForDay(day);
@@ -52,9 +60,8 @@ export function CalendarGrid() {
                   'group min-h-[110px] border-b border-r border-border p-1.5 cursor-pointer hover:bg-accent/30 transition-colors',
                   !isCurrentMonth && 'bg-muted/20'
                 )}
-                onClick={() => setCreateDate(day)}
+                onClick={() => goToDay(day)}
               >
-                {/* Date number + quick-add */}
                 <div className="flex items-center justify-between mb-1">
                   <span
                     className={cn(
@@ -66,10 +73,15 @@ export function CalendarGrid() {
                   >
                     {format(day, 'd')}
                   </span>
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <button
+                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-accent p-0.5"
+                    onClick={(e) => { e.stopPropagation(); setCreateDate(day); }}
+                    aria-label="Add event"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
                 </div>
 
-                {/* Events */}
                 <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
                   {dayEvents.slice(0, 3).map((event) => (
                     <div key={event.id} onClick={() => setSelectedEvent(event)}>
@@ -88,21 +100,18 @@ export function CalendarGrid() {
         </div>
       </div>
 
-      {/* Create event modal */}
       <EventFormModal
         open={Boolean(createDate)}
         onClose={() => setCreateDate(null)}
         defaultDate={createDate ?? undefined}
       />
 
-      {/* Event detail modal */}
       <EventDetailModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
         onEdit={(e) => { setSelectedEvent(null); setEditingEvent(e); }}
       />
 
-      {/* Edit event modal */}
       <EventFormModal
         open={Boolean(editingEvent)}
         onClose={() => setEditingEvent(null)}

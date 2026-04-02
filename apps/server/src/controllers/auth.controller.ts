@@ -12,7 +12,7 @@ const REFRESH_COOKIE_NAME = 'calassist_refresh';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  sameSite: 'lax' as const, // 'strict' breaks OAuth cross-site redirects
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 

@@ -1,13 +1,12 @@
-import { genAI } from '../config/gemini';
-import type { GeminiResponse } from '../types/gemini.types';
+import { groq, GROQ_MODEL } from '../config/groq';
 import { AppError } from '../middleware/errorHandler';
 import { z } from 'zod';
 
 const SYSTEM_PROMPT_TEMPLATE = `You are CalAssist, a precise and friendly personal calendar assistant.
 
 CURRENT CONTEXT:
-- Today's date and time: {CURRENT_DATETIME} (ISO 8601 with timezone)
-- User's timezone: {USER_TIMEZONE}
+- Current local date and time for the user: {CURRENT_LOCAL_DATETIME} (already in the user's timezone)
+- User's timezone: {USER_TIMEZONE} (UTC offset: {UTC_OFFSET})
 - User's name: {USER_NAME}
 
 YOUR CAPABILITIES:
@@ -18,61 +17,71 @@ YOUR CAPABILITIES:
 - Answer general questions (intent: GENERAL_QUESTION)
 
 BEHAVIOR RULES:
-1. Always resolve relative dates ("tomorrow", "next Friday", "in 3 hours") to absolute ISO 8601 datetimes using CURRENT CONTEXT. Never return relative dates.
-2. If an event duration is not specified, default to 1 hour.
-3. If an event time is ambiguous, set needsClarification: true.
-4. For list requests without a date range, default to the next 7 days from today.
-5. Keep the reply field conversational and brief (1-3 sentences).
-6. Never invent attendee email addresses. Only include emails explicitly stated by the user.
-7. If confidence is below 0.7, set needsClarification: true.
-8. For GENERAL_QUESTION intent, do not populate the event field.
-9. Always respond in the same language the user writes in.
-10. For UPDATE_EVENT and DELETE_EVENT, populate targetEventId if the user refers to a known event ID.
+1. All times the user mentions (e.g. "7pm", "3:30am") are in the user's local timezone ({USER_TIMEZONE}).
+2. Always resolve relative dates ("tomorrow", "next Friday", "in 3 hours") using the CURRENT LOCAL DATE AND TIME shown above.
+3. Output all datetimes as ISO 8601 strings with the user's UTC offset. Example for UTC-5: "2026-04-01T19:00:00-05:00". Do NOT convert to UTC.
+4. If an event duration is not specified, default to 1 hour.
+5. If an event time is ambiguous, set needsClarification: true.
+6. For list requests without a date range, default to the next 7 days from today.
+7. Keep the reply field conversational and brief (1-3 sentences).
+8. Never invent attendee email addresses. Only include emails explicitly stated by the user.
+9. If confidence is below 0.7, set needsClarification: true.
+10. For GENERAL_QUESTION intent, do not populate the event field.
+11. Always respond in the same language the user writes in.
+12. For UPDATE_EVENT and DELETE_EVENT, populate targetEventId if the user refers to a known event ID.
 
-You must return valid JSON matching exactly this structure (no markdown, no code fences, raw JSON only):
-{
-  "intent": "CREATE_EVENT",
-  "reply": "string",
-  "confidence": 0.95,
-  "event": { "title": "string", "description": null, "location": null, "startDateTime": "2026-03-28T10:00:00Z", "endDateTime": "2026-03-28T11:00:00Z", "attendees": null, "allDay": false, "recurrence": null },
-  "queryRange": null,
-  "needsClarification": false,
-  "clarificationQuestion": null,
-  "targetEventId": null
-}`;
+You must return valid JSON only — no markdown, no code fences, no explanation. Example for a user in UTC-5:
+{"intent":"CREATE_EVENT","reply":"Done! Added your dentist appointment for Friday at 2pm.","confidence":0.97,"event":{"title":"Dentist appointment","description":null,"location":null,"startDateTime":"2026-04-03T14:00:00-05:00","endDateTime":"2026-04-03T15:00:00-05:00","attendees":null,"allDay":false,"recurrence":null},"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null}`;
 
-const geminiResponseSchema = z.object({
-  intent: z.enum([
-    'CREATE_EVENT',
-    'LIST_EVENTS',
-    'UPDATE_EVENT',
-    'DELETE_EVENT',
-    'GENERAL_QUESTION',
-    'NONE',
-  ]),
+const responseSchema = z.object({
+  intent: z.enum(['CREATE_EVENT', 'LIST_EVENTS', 'UPDATE_EVENT', 'DELETE_EVENT', 'GENERAL_QUESTION', 'NONE']),
   reply: z.string(),
   confidence: z.number().min(0).max(1),
-  event: z
-    .object({
-      title: z.string(),
-      description: z.string().nullable().optional(),
-      location: z.string().nullable().optional(),
-      startDateTime: z.string(),
-      endDateTime: z.string(),
-      attendees: z.array(z.string()).nullable().optional(),
-      allDay: z.boolean(),
-      recurrence: z.string().nullable().optional(),
-    })
-    .nullable()
-    .optional(),
-  queryRange: z
-    .object({ start: z.string(), end: z.string() })
-    .nullable()
-    .optional(),
+  event: z.object({
+    title: z.string(),
+    description: z.string().nullable().optional(),
+    location: z.string().nullable().optional(),
+    startDateTime: z.string(),
+    endDateTime: z.string(),
+    attendees: z.array(z.string()).nullable().optional(),
+    allDay: z.boolean(),
+    recurrence: z.string().nullable().optional(),
+  }).nullable().optional(),
+  queryRange: z.object({ start: z.string(), end: z.string() }).nullable().optional(),
   needsClarification: z.boolean(),
   clarificationQuestion: z.string().nullable().optional(),
   targetEventId: z.string().nullable().optional(),
 });
+
+export type AIIntent =
+  | 'CREATE_EVENT'
+  | 'LIST_EVENTS'
+  | 'UPDATE_EVENT'
+  | 'DELETE_EVENT'
+  | 'GENERAL_QUESTION'
+  | 'NONE';
+
+export interface AIEventPayload {
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  startDateTime: string;
+  endDateTime: string;
+  attendees?: string[] | null;
+  allDay: boolean;
+  recurrence?: string | null;
+}
+
+export interface AIResponse {
+  intent: AIIntent;
+  reply: string;
+  confidence: number;
+  event?: AIEventPayload | null;
+  queryRange?: { start: string; end: string } | null;
+  needsClarification: boolean;
+  clarificationQuestion?: string | null;
+  targetEventId?: string | null;
+}
 
 interface HistoryMessage {
   role: 'USER' | 'ASSISTANT';
@@ -84,78 +93,92 @@ interface PromptContext {
   userName: string;
 }
 
+function getLocalDatetime(timezone: string): { localDatetime: string; utcOffset: string } {
+  const now = new Date();
+
+  // Format current time in the user's local timezone (e.g. "2026-03-31 19:00:00")
+  const localDatetime = now.toLocaleString('sv-SE', { timeZone: timezone }).replace('T', ' ');
+
+  // Extract UTC offset from Intl (e.g. "GMT-5" → "-05:00")
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    timeZoneName: 'shortOffset',
+  }).formatToParts(now);
+
+  const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  // tzPart examples: "GMT", "GMT-5", "GMT+5:30"
+  const raw = tzPart.replace('GMT', '') || '+0';
+  const [hourStr, minStr = '00'] = raw.split(':');
+  const sign = hourStr.startsWith('-') ? '-' : '+';
+  const hour = Math.abs(parseInt(hourStr, 10)).toString().padStart(2, '0');
+  const min = minStr.padStart(2, '0');
+  const utcOffset = `${sign}${hour}:${min}`;
+
+  return { localDatetime, utcOffset };
+}
+
 export async function extractIntent(
   userMessage: string,
   history: HistoryMessage[],
   context: PromptContext
-): Promise<GeminiResponse> {
-  const currentDatetime = new Date().toISOString();
+): Promise<AIResponse> {
+  const { localDatetime, utcOffset } = getLocalDatetime(context.timezone);
 
   const systemPrompt = SYSTEM_PROMPT_TEMPLATE
-    .replace('{CURRENT_DATETIME}', currentDatetime)
+    .replace('{CURRENT_LOCAL_DATETIME}', localDatetime)
     .replace('{USER_TIMEZONE}', context.timezone)
+    .replace('{UTC_OFFSET}', utcOffset)
+    .replace('{USER_TIMEZONE}', context.timezone) // second occurrence in example
     .replace('{USER_NAME}', context.userName);
 
-  // Build contents array: system prompt + history + new user message
-  const contents = [
+  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: systemPrompt },
     ...history.slice(-10).map((m) => ({
-      role: m.role === 'USER' ? 'user' : 'model',
-      parts: [{ text: m.content }],
+      role: (m.role === 'USER' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.content,
     })),
-    { role: 'user', parts: [{ text: userMessage }] },
+    { role: 'user', content: userMessage },
   ];
 
   try {
-    // Get a fresh model instance per request so generationConfig is applied correctly
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: systemPrompt,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-      },
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages,
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+      max_tokens: 1024,
     });
 
-    const result = await model.generateContent({ contents });
-    const rawText = result.response.text();
-
-    // Strip markdown code fences if model wraps response anyway
-    const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/, '')
-      .trim();
+    const rawText = completion.choices[0]?.message?.content ?? '';
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(rawText);
     } catch {
-      console.error('Gemini raw response (parse failed):', rawText);
-      throw new AppError('AI returned an unexpected response format. Please try again.', 500, 'GEMINI_PARSE_ERROR');
+      console.error('Failed to parse AI response:', rawText);
+      throw new AppError('AI returned an unexpected format. Please try again.', 500, 'AI_PARSE_ERROR');
     }
 
-    const validated = geminiResponseSchema.safeParse(parsed);
+    const validated = responseSchema.safeParse(parsed);
     if (!validated.success) {
-      console.error('Gemini validation failed:', validated.error.flatten(), 'Parsed:', parsed);
-      throw new AppError('AI returned an unexpected response format. Please try again.', 500, 'GEMINI_VALIDATION_ERROR');
+      console.error('AI response validation failed:', validated.error.flatten());
+      throw new AppError('AI returned an unexpected format. Please try again.', 500, 'AI_VALIDATION_ERROR');
     }
 
-    return validated.data as GeminiResponse;
+    return validated.data as AIResponse;
   } catch (err) {
     if (err instanceof AppError) throw err;
 
-    const error = err as Error & { status?: number; message?: string };
-    console.error('Gemini API error:', error.message ?? error);
+    const error = err as Error & { status?: number };
+    console.error('AI service error:', error.message);
 
-    if (error.status === 429 || error.message?.includes('429')) {
-      throw new AppError("Too many requests. Please wait a moment and try again.", 429, 'GEMINI_RATE_LIMIT');
+    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('rate')) {
+      throw new AppError('Too many requests. Please wait a moment and try again.', 429, 'RATE_LIMIT');
     }
-    if (error.status === 403 || error.message?.includes('API_KEY') || error.message?.includes('403')) {
-      throw new AppError("AI service configuration error. Please check the API key.", 503, 'GEMINI_AUTH_ERROR');
-    }
-    if (error.status === 404 || error.message?.includes('not found') || error.message?.includes('404')) {
-      throw new AppError("AI model not available. Please contact support.", 503, 'GEMINI_MODEL_ERROR');
+    if (error.status === 401 || error.message?.includes('401') || error.message?.includes('API key')) {
+      throw new AppError('Invalid AI API key. Please check your GROQ_API_KEY in .env.', 503, 'AUTH_ERROR');
     }
 
-    throw new AppError(`AI service error: ${error.message ?? 'Unknown error'}`, 503, 'GEMINI_UNAVAILABLE');
+    throw new AppError(`AI error: ${error.message ?? 'Unknown error'}`, 503, 'AI_UNAVAILABLE');
   }
 }

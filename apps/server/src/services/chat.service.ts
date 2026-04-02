@@ -1,6 +1,7 @@
 import { prisma } from '../config/prisma';
 import { extractIntent } from './gemini.service';
 import * as eventsService from './events.service';
+import * as calendarService from './calendar.service';
 import type { CalendarAction } from '@prisma/client';
 
 const CONFIDENCE_THRESHOLD = 0.85;
@@ -79,6 +80,18 @@ export async function processMessage(
           recurrence: e.recurrence ?? undefined,
         });
         eventId = created.id;
+
+        // Sync to Google Calendar if the user signed in with Google
+        syncToGoogleCalendar(userId, created.id, {
+          title: e.title,
+          description: e.description ?? undefined,
+          location: e.location ?? undefined,
+          startDateTime: e.startDateTime,
+          endDateTime: e.endDateTime,
+          allDay: e.allDay,
+          attendees: e.attendees ?? undefined,
+          recurrence: e.recurrence ?? undefined,
+        });
       } catch {
         replyContent = "I understood what you want, but had trouble saving the event. Please try again.";
       }
@@ -194,6 +207,17 @@ export async function confirmEventCreation(userId: string, messageId: string): P
       recurrence: payload.recurrence as string | undefined,
     });
     eventId = created.id;
+
+    // Sync to Google Calendar if the user signed in with Google
+    syncToGoogleCalendar(userId, created.id, {
+      title: payload.title as string,
+      description: payload.description as string | undefined,
+      location: payload.location as string | undefined,
+      startDateTime: payload.startDateTime as string,
+      endDateTime: payload.endDateTime as string,
+      allDay: (payload.allDay as boolean) ?? false,
+      recurrence: payload.recurrence as string | undefined,
+    });
   } catch {
     content = "I had trouble creating the event. Please try again.";
   }
@@ -211,6 +235,53 @@ export async function confirmEventCreation(userId: string, messageId: string): P
     eventId,
     createdAt: new Date(),
   };
+}
+
+/**
+ * Fire-and-forget: push a newly created local event to Google Calendar.
+ * Only runs if the user has a connected Google account.
+ * Failures are logged but never surface to the user.
+ */
+function syncToGoogleCalendar(
+  userId: string,
+  localEventId: string,
+  payload: {
+    title: string;
+    description?: string;
+    location?: string;
+    startDateTime: string;
+    endDateTime: string;
+    allDay: boolean;
+    attendees?: string[] | null;
+    recurrence?: string | null;
+  }
+): void {
+  prisma.user
+    .findUnique({ where: { id: userId }, select: { googleAccessToken: true } })
+    .then((user) => {
+      if (!user?.googleAccessToken) return; // local-only account, skip
+
+      return calendarService
+        .createEvent(userId, {
+          title: payload.title,
+          description: payload.description,
+          location: payload.location,
+          startDateTime: payload.startDateTime,
+          endDateTime: payload.endDateTime,
+          allDay: payload.allDay,
+          attendees: payload.attendees ?? undefined,
+          recurrence: payload.recurrence ?? undefined,
+        })
+        .then((gcalEvent) =>
+          prisma.event.update({
+            where: { id: localEventId },
+            data: { googleEventId: gcalEvent.googleEventId },
+          })
+        );
+    })
+    .catch((err) => {
+      console.error('[Google Calendar sync] Failed for event', localEventId, err?.message, err?.response?.data ?? '');
+    });
 }
 
 export async function getChatHistory(userId: string, limit = 50, beforeId?: string) {

@@ -3,6 +3,7 @@ import passport from '../config/passport';
 import { googleCallback, refresh, logout, me, registerLocal, loginLocal } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/authenticate';
 import { authRateLimiter } from '../middleware/rateLimiter';
+import { env } from '../config/env';
 
 const router = Router();
 
@@ -25,7 +26,10 @@ router.get(
 // OAuth callback
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login?error=auth_failed', session: false }),
+  passport.authenticate('google', {
+    failureRedirect: `${env.FRONTEND_URL}/login?error=auth_failed`,
+    session: false,
+  }),
   googleCallback
 );
 

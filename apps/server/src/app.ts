@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import { env } from './config/env';
 import './config/passport'; // Initialize passport strategies
 import routes from './routes';
@@ -23,6 +24,9 @@ app.use(
 
 // Logging
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+
+// Passport
+app.use(passport.initialize());
 
 // Body parsing
 app.use(express.json({ limit: '10kb' }));

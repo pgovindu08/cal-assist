@@ -13,6 +13,7 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "@types/dom-speech-recognition": "^0.0.9",
     "turbo": "^2.0.0"
   },
   "packageManager": "npm@10.0.0",

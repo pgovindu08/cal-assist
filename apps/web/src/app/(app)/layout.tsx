@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { FloatingTimer } from '@/components/timer/FloatingTimer';
 import { useAuthStore } from '@/store/authStore';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <main className="flex-1 overflow-hidden">{children}</main>
+      <FloatingTimer />
     </div>
   );
 }

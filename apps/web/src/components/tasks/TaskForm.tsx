@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/taskStore';
 import type { TaskPriority } from '@/store/taskStore';
 
-export function TaskForm() {
+export function TaskForm({ onClose }: { onClose?: () => void } = {}) {
   const { createTask } = useTaskStore();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -31,25 +30,21 @@ export function TaskForm() {
       setDueDate('');
       setPriority('MEDIUM');
       setIsOpen(false);
+      onClose?.();
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 w-full rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-      >
-        <Plus className="h-4 w-4" />
-        Add task
-      </button>
-    );
-  }
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-primary bg-card p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-white/[0.12] bg-[#1A1D2E] p-4 space-y-3">
       <input
         autoFocus
         value={title}
@@ -82,7 +77,7 @@ export function TaskForm() {
         </select>
       </div>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={handleClose}>
           Cancel
         </Button>
         <Button type="submit" size="sm" disabled={!title.trim() || isSubmitting}>

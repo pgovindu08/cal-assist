@@ -24,6 +24,7 @@ interface RadialOrbitalTimelineProps {
 export default function RadialOrbitalTimeline({
   timelineData,
 }: RadialOrbitalTimelineProps) {
+  const [mounted, setMounted] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [rotationAngle, setRotationAngle] = useState<number>(0);
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
@@ -33,6 +34,8 @@ export default function RadialOrbitalTimeline({
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
@@ -169,11 +172,11 @@ export default function RadialOrbitalTimeline({
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="absolute transition-all duration-700 cursor-pointer"
-                style={{
+                style={mounted ? {
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
-                }}
+                } : { opacity: 0 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleItem(item.id);

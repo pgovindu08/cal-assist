@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { processMessage, getChatHistory, confirmEventCreation } from '../services/chat.service';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { prisma } from '../config/prisma';
+import { groq } from '../config/groq';
+import { toFile } from 'groq-sdk';
 import type { AuthenticatedRequest } from '../middleware/authenticate';
 
 const sendMessageSchema = z.object({
@@ -63,6 +65,29 @@ export async function confirmEvent(req: Request, res: Response, next: NextFuncti
 
     const result = await confirmEventCreation(user.id, messageId);
     sendSuccess(res, { message: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function transcribeAudio(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file) {
+      sendError(res, 'No audio file provided', 400, 'MISSING_FILE');
+      return;
+    }
+
+    const audioFile = await toFile(file.buffer, 'recording.webm', { type: file.mimetype });
+
+    const transcription = await groq.audio.transcriptions.create({
+      file: audioFile,
+      model: 'whisper-large-v3-turbo',
+      language: 'en',
+      response_format: 'json',
+    });
+
+    sendSuccess(res, { text: transcription.text });
   } catch (err) {
     next(err);
   }

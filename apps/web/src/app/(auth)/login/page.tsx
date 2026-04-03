@@ -10,6 +10,7 @@ import {
   Zap,
   RefreshCw,
   Bell,
+  Mail,
 } from "lucide-react";
 import { TextRotate } from "@/components/ui/text-rotate";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -284,6 +285,9 @@ export default function LoginPage() {
               </div>
               <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center">
                 <CheckSquare className="w-4 h-4 text-zinc-400" />
+              </div>
+              <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center">
+                <Mail className="w-4 h-4 text-zinc-400" />
               </div>
             </div>
 

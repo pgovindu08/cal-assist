@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, CalendarDays, CheckSquare, LogOut } from 'lucide-react';
+import { MessageSquare, CalendarDays, CheckSquare, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/chat', icon: MessageSquare, label: 'Chat' },
   { href: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { href: '/email', icon: Mail, label: 'Email' },
 ];
 
 export function Sidebar() {

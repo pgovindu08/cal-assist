@@ -21,7 +21,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const CELL_H = 64; // px per hour
 
 const COLOR_OPTIONS = [
-  { label: 'Blue',   value: '#1A56DB' },
+  { label: 'Blue',   value: 'var(--cal-primary)' },
   { label: 'Green',  value: '#057A55' },
   { label: 'Red',    value: '#E02424' },
   { label: 'Purple', value: '#7E3AF2' },
@@ -124,14 +124,14 @@ function MonthView({
               className="group min-h-[110px] border-b border-r p-1.5 cursor-pointer transition-colors"
               style={{
                 borderColor: 'rgba(255,255,255,0.07)',
-                background: today ? 'rgba(26,86,219,0.06)' : !inMonth ? 'rgba(255,255,255,0.015)' : 'transparent',
+                background: today ? 'rgba(var(--cal-primary-rgb),0.06)' : !inMonth ? 'rgba(255,255,255,0.015)' : 'transparent',
               }}
             >
               <div className="flex items-center justify-between mb-1">
                 <span
                   className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold transition-colors"
                   style={{
-                    background: today ? '#1A56DB' : 'transparent',
+                    background: today ? 'var(--cal-primary)' : 'transparent',
                     color: today ? 'white' : inMonth ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)',
                   }}
                 >
@@ -212,15 +212,15 @@ function WeekViewComponent({
             <div
               key={day.toISOString()}
               className="border-l text-center py-2"
-              style={{ borderColor: 'rgba(255,255,255,0.07)', background: isToday(day) ? 'rgba(26,86,219,0.06)' : 'transparent' }}
+              style={{ borderColor: 'rgba(255,255,255,0.07)', background: isToday(day) ? 'rgba(var(--cal-primary-rgb),0.06)' : 'transparent' }}
             >
-              <p className="text-[11px] font-medium" style={{ color: isToday(day) ? '#1A56DB' : 'rgba(255,255,255,0.35)' }}>
+              <p className="text-[11px] font-medium" style={{ color: isToday(day) ? 'var(--cal-primary)' : 'rgba(255,255,255,0.35)' }}>
                 {format(day, 'EEE')}
               </p>
               <div
                 className="mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold"
                 style={{
-                  background: isToday(day) ? '#1A56DB' : 'transparent',
+                  background: isToday(day) ? 'var(--cal-primary)' : 'transparent',
                   color: isToday(day) ? 'white' : 'rgba(255,255,255,0.85)',
                 }}
               >
@@ -277,7 +277,7 @@ function WeekViewComponent({
                 style={{
                   height: `${CELL_H * 24}px`,
                   borderColor: 'rgba(255,255,255,0.07)',
-                  background: isToday(day) ? 'rgba(26,86,219,0.02)' : 'transparent',
+                  background: isToday(day) ? 'rgba(var(--cal-primary-rgb),0.02)' : 'transparent',
                 }}
               >
                 {/* Hour slot backgrounds */}
@@ -491,14 +491,14 @@ function ListViewComponent({
               <div
                 className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shrink-0"
                 style={{
-                  background: today ? '#1A56DB' : 'rgba(255,255,255,0.07)',
+                  background: today ? 'var(--cal-primary)' : 'rgba(255,255,255,0.07)',
                   color: today ? 'white' : 'rgba(255,255,255,0.6)',
                 }}
               >
                 {format(day, 'd')}
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: today ? '#1A56DB' : 'rgba(255,255,255,0.8)' }}>
+                <p className="text-sm font-semibold" style={{ color: today ? 'var(--cal-primary)' : 'rgba(255,255,255,0.8)' }}>
                   {today ? 'Today' : format(day, 'EEEE')}
                 </p>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -572,7 +572,7 @@ function EventFormModal({
   const [startDateTime, setStartDateTime] = useState(defaultStart);
   const [endDateTime, setEndDateTime] = useState(defaultEnd);
   const [allDay, setAllDay] = useState(event?.allDay ?? false);
-  const [color, setColor] = useState(event?.color ?? '#1A56DB');
+  const [color, setColor] = useState(event?.color ?? 'var(--cal-primary)');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -592,7 +592,7 @@ function EventFormModal({
         : format(new Date(), "yyyy-MM-dd'T'10:00")
     );
     setAllDay(event?.allDay ?? false);
-    setColor(event?.color ?? '#1A56DB');
+    setColor(event?.color ?? 'var(--cal-primary)');
     setError('');
   }, [event, defaultDate]);
 
@@ -734,7 +734,7 @@ function EventFormModal({
                   <div
                     onClick={() => setAllDay(!allDay)}
                     className="relative h-5 w-9 rounded-full transition-colors"
-                    style={{ background: allDay ? '#1A56DB' : 'rgba(255,255,255,0.15)' }}
+                    style={{ background: allDay ? 'var(--cal-primary)' : 'rgba(255,255,255,0.15)' }}
                   >
                     <div
                       className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all"
@@ -806,7 +806,7 @@ function EventFormModal({
                     type="submit"
                     disabled={isLoading}
                     className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60 hover:opacity-90"
-                    style={{ background: '#1A56DB' }}
+                    style={{ background: 'var(--cal-primary)' }}
                   >
                     {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     {isEdit ? 'Save Changes' : 'Create Event'}
@@ -932,7 +932,7 @@ function EventDetailModal({
                 <button
                   onClick={() => { onClose(); onEdit(event); }}
                   className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                  style={{ background: '#1A56DB' }}
+                  style={{ background: 'var(--cal-primary)' }}
                 >
                   Edit
                 </button>
@@ -1071,7 +1071,7 @@ export function EventManager() {
                 onClick={() => setView(key)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                 style={{
-                  background: view === key ? '#1A56DB' : 'transparent',
+                  background: view === key ? 'var(--cal-primary)' : 'transparent',
                   color: view === key ? 'white' : 'rgba(255,255,255,0.45)',
                 }}
               >
@@ -1101,7 +1101,7 @@ export function EventManager() {
           <button
             onClick={() => setShowNewEvent(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#1A56DB' }}
+            style={{ background: 'var(--cal-primary)' }}
           >
             <Plus className="h-3.5 w-3.5" />
             New Event
@@ -1114,7 +1114,7 @@ export function EventManager() {
         <div className="h-0.5 shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
           <motion.div
             className="h-full"
-            style={{ background: '#1A56DB' }}
+            style={{ background: 'var(--cal-primary)' }}
             initial={{ width: '0%' }}
             animate={{ width: '70%' }}
             transition={{ duration: 1.5, ease: 'easeOut' }}

@@ -70,6 +70,21 @@
   }
 }
 
+/* ── CalAssist theme CSS variables (overridden at runtime by SettingsApplier) ── */
+:root {
+  --cal-primary:     #1A56DB;
+  --cal-primary-rgb: 26, 86, 219;
+  --cal-secondary:   #7E3AF2;
+  --cal-bg:          #0D0F1A;
+  --cal-surface:     #141727;
+  --cal-font-base:   15px;
+}
+
+/* Card style variants */
+[data-card-style="glass"]    { --cal-card-backdrop: blur(20px); --cal-card-bg: rgba(255,255,255,0.035); }
+[data-card-style="solid"]    { --cal-card-backdrop: none;       --cal-card-bg: #1A1D2E; }
+[data-card-style="outlined"] { --cal-card-backdrop: none;       --cal-card-bg: transparent; }
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

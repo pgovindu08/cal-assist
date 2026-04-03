@@ -7,9 +7,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useTaskStore } from '@/store/taskStore';
 import type { Task } from '@/store/taskStore';
-import { TaskCard, XP_MAP } from './TaskCard';
+import { TaskCard } from './TaskCard';
 import { TaskForm } from './TaskForm';
 import { cn } from '@/lib/utils';
+import { useSettingsStore, LEVEL_TITLE_SETS } from '@/store/settingsStore';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -24,10 +25,6 @@ const MOTIVATIONAL = [
   "One task at a time. That's all it takes.",
 ];
 
-const LEVEL_TITLES = [
-  'Rookie', 'Apprentice', 'Explorer', 'Warrior',
-  'Champion', 'Hero', 'Legend', 'Mythic',
-];
 
 const EMPTY_STATES: Record<string, { emoji: string; line1: string; line2: string }> = {
   'Do Today':  { emoji: '✅', line1: "You're all caught up!",       line2: 'Nothing due today.' },
@@ -37,9 +34,6 @@ const EMPTY_STATES: Record<string, { emoji: string; line1: string; line2: string
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function getLevelTitle(level: number) {
-  return LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
-}
 
 function computeStreak(tasks: Task[]): number {
   const done = tasks.filter((t) => t.status === 'DONE');
@@ -99,8 +93,8 @@ function XPPopups({ items }: { items: XPPopupItem[] }) {
           animate={{ opacity: 0, y: -70 }}
           transition={{ duration: 1.3, ease: 'easeOut' }}
           className="fixed z-[200] top-24 left-1/2 pointer-events-none select-none"
-          style={{ fontWeight: 900, fontSize: 20, color: '#5352ED',
-            textShadow: '0 0 20px rgba(83,82,237,0.8)' }}
+          style={{ fontWeight: 900, fontSize: 20, color: 'var(--cal-secondary)',
+            textShadow: '0 0 20px rgba(var(--cal-primary-rgb),0.8)' }}
         >
           +{p.amount} XP ⚡
         </motion.div>
@@ -168,6 +162,11 @@ function SwimLane({
 
 export function TaskList() {
   const { tasks, isLoading, fetchTasks, updateTask } = useTaskStore();
+  const { xpHigh, xpMedium, xpLow, lazyModeCount, levelTitleSet } = useSettingsStore();
+
+  // Dynamic XP map from settings
+  const XP_MAP = { HIGH: xpHigh, MEDIUM: xpMedium, LOW: xpLow } as const;
+  const levelTitles = LEVEL_TITLE_SETS[levelTitleSet];
 
   const [lazyMode,    setLazyMode]    = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -223,7 +222,7 @@ export function TaskList() {
       const sorted = [...source].sort((a, b) =>
         ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[a.priority]) - ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[b.priority]),
       );
-      return { doToday: sorted.slice(0, 3), upNext: [], someday: [] };
+      return { doToday: sorted.slice(0, lazyModeCount), upNext: [], someday: [] };
     }
 
     return {
@@ -302,7 +301,7 @@ export function TaskList() {
     return (
       <div className="flex items-center justify-center h-full" style={{ background: '#0F1117' }}>
         <div className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: '#5352ED', borderTopColor: 'transparent' }} />
+          style={{ borderColor: 'var(--cal-secondary)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
@@ -340,7 +339,7 @@ export function TaskList() {
                 setFocusTask(null);
               }}
               className="px-8 py-4 rounded-2xl text-white font-bold text-base transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #5352ED, #1E90FF)' }}
+              style={{ background: 'linear-gradient(135deg, var(--cal-secondary), var(--cal-primary))' }}
             >
               Mark Complete ✓
             </button>
@@ -361,15 +360,15 @@ export function TaskList() {
               <div
                 className="h-12 w-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-lg"
                 style={{
-                  background: 'linear-gradient(135deg, #5352ED, #1E90FF)',
-                  boxShadow: '0 0 20px rgba(83,82,237,0.4)',
+                  background: 'linear-gradient(135deg, var(--cal-secondary), var(--cal-primary))',
+                  boxShadow: '0 0 20px rgba(var(--cal-primary-rgb),0.4)',
                 }}
               >
                 {level}
               </div>
               <div>
                 <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Level {level}</p>
-                <p className="text-sm font-bold text-white">{getLevelTitle(level)}</p>
+                <p className="text-sm font-bold text-white">{levelTitles[Math.min(level - 1, levelTitles.length - 1)]}</p>
               </div>
             </div>
 
@@ -377,7 +376,7 @@ export function TaskList() {
             <div className="flex-1 min-w-[160px]">
               <div className="flex justify-between text-[11px] text-white/40 mb-2">
                 <span className="flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5" style={{ color: '#5352ED' }} />
+                  <Zap className="h-3.5 w-3.5" style={{ color: 'var(--cal-secondary)' }} />
                   <span className="font-semibold text-white/60">{totalXP.toLocaleString()} XP</span>
                 </span>
                 <span>{levelXP} / 500 to next level</span>
@@ -390,8 +389,8 @@ export function TaskList() {
                   transition={{ duration: 1, ease: 'easeOut' }}
                   className="h-full rounded-full"
                   style={{
-                    background: 'linear-gradient(to right, #5352ED, #1E90FF)',
-                    boxShadow: '0 0 12px rgba(83,82,237,0.7)',
+                    background: 'linear-gradient(to right, var(--cal-secondary), var(--cal-primary))',
+                    boxShadow: '0 0 12px rgba(var(--cal-primary-rgb),0.7)',
                   }}
                 />
               </div>
@@ -433,7 +432,7 @@ export function TaskList() {
                 'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold shrink-0 transition-all',
                 lazyMode ? 'text-white' : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08] hover:text-white',
               )}
-              style={lazyMode ? { background: 'linear-gradient(to right, #5352ED, #1E90FF)', boxShadow: '0 0 16px rgba(83,82,237,0.4)' } : {}}
+              style={lazyMode ? { background: 'linear-gradient(to right, var(--cal-secondary), var(--cal-primary))', boxShadow: '0 0 16px rgba(var(--cal-primary-rgb),0.4)' } : {}}
             >
               {lazyMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               {lazyMode ? 'Lazy Mode ON' : 'Lazy Mode'}
@@ -459,7 +458,7 @@ export function TaskList() {
             {/* Today's Quests */}
             <div className="rounded-2xl border border-white/[0.07] bg-[#1A1D2E] p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Target className="h-4 w-4 shrink-0" style={{ color: '#1E90FF' }} />
+                <Target className="h-4 w-4 shrink-0" style={{ color: 'var(--cal-primary)' }} />
                 <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Today&apos;s Quests</span>
               </div>
               <p className="text-3xl font-black text-white leading-none">
@@ -471,8 +470,8 @@ export function TaskList() {
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${todayPct}%`,
-                    background: '#1E90FF',
-                    boxShadow: todayPct > 0 ? '0 0 8px rgba(30,144,255,0.6)' : 'none',
+                    background: 'var(--cal-primary)',
+                    boxShadow: todayPct > 0 ? '0 0 8px rgba(var(--cal-primary-rgb),0.6)' : 'none',
                   }}
                 />
               </div>
@@ -547,17 +546,17 @@ export function TaskList() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="rounded-2xl border border-white/[0.08] bg-[#1A1D2E] p-5"
-                style={{ boxShadow: '0 0 32px rgba(83,82,237,0.07)' }}
+                style={{ boxShadow: '0 0 32px rgba(var(--cal-primary-rgb),0.07)' }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Flame className="h-4 w-4" style={{ color: '#5352ED' }} />
+                    <Flame className="h-4 w-4" style={{ color: 'var(--cal-secondary)' }} />
                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Daily Focus</span>
                   </div>
                   <button
                     onClick={() => setFocusTask(dailyFocus)}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-opacity hover:opacity-80"
-                    style={{ background: 'linear-gradient(to right, #5352ED, #1E90FF)' }}
+                    style={{ background: 'linear-gradient(to right, var(--cal-secondary), var(--cal-primary))' }}
                   >
                     Start Focus Mode
                   </button>
@@ -581,24 +580,23 @@ export function TaskList() {
                 <button
                   key={key}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border shrink-0 transition-all min-w-[56px]',
-                    isSelected   ? 'border-[#5352ED] bg-[#5352ED]/20'
-                    : isToday    ? 'border-[#1E90FF]/40 bg-[#1A1D2E]'
-                    :              'border-white/[0.07] bg-[#1A1D2E] hover:border-white/20',
-                  )}
-                  style={isToday && !isSelected ? { boxShadow: '0 0 14px rgba(30,144,255,0.15)' } : {}}
+                  className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border shrink-0 transition-all min-w-[56px]"
+                  style={{
+                    borderColor: isSelected ? 'var(--cal-secondary)' : isToday ? 'rgba(var(--cal-primary-rgb),0.4)' : 'rgba(255,255,255,0.07)',
+                    background:  isSelected ? 'rgba(var(--cal-primary-rgb),0.18)' : '#1A1D2E',
+                    boxShadow:   isToday && !isSelected ? '0 0 14px rgba(var(--cal-primary-rgb),0.15)' : 'none',
+                  }}
                 >
                   <span className="text-[10px] font-semibold uppercase text-white/40">
                     {day.toLocaleDateString('en-US', { weekday: 'short' })}
                   </span>
-                  <span className={cn('text-sm font-black', isToday ? 'text-[#1E90FF]' : 'text-white')}>
+                  <span className="text-sm font-black" style={{ color: isToday ? 'var(--cal-primary)' : 'white' }}>
                     {day.getDate()}
                   </span>
                   <div className="flex gap-0.5 h-2 items-center">
                     {count > 0
                       ? Array.from({ length: Math.min(count, 4) }).map((_, j) => (
-                          <div key={j} className="h-1.5 w-1.5 rounded-full bg-[#5352ED]" />
+                          <div key={j} className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--cal-secondary)' }} />
                         ))
                       : <div className="h-1.5 w-1.5 rounded-full bg-white/10" />
                     }
@@ -699,7 +697,7 @@ export function TaskList() {
                     <p className="flex-1 text-xs text-white/40 line-through truncate">{task.title}</p>
                     <span
                       className="text-xs font-bold shrink-0 px-2 py-0.5 rounded-full"
-                      style={{ color: '#5352ED', background: 'rgba(83,82,237,0.12)' }}
+                      style={{ color: 'var(--cal-secondary)', background: 'rgba(var(--cal-primary-rgb),0.12)' }}
                     >
                       +{XP_MAP[task.priority]} XP
                     </span>

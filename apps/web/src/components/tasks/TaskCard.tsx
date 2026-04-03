@@ -66,7 +66,7 @@ function CardCountdown({ taskId }: { taskId: string }) {
 
   return (
     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.06]">
-      <Timer className="h-3.5 w-3.5 shrink-0" style={{ color: isWarning ? '#FFA502' : '#5352ED' }} />
+      <Timer className="h-3.5 w-3.5 shrink-0" style={{ color: isWarning ? '#FFA502' : 'var(--cal-secondary)' }} />
       <span
         className="text-sm font-black tabular-nums"
         style={{
@@ -153,14 +153,14 @@ export function TaskCard({
               ? 'opacity-40 bg-white/[0.02] border-white/5'
               : 'bg-[#1A1D2E] border-white/[0.08] hover:border-white/20',
             glowEffect && !isDone && 'shadow-[0_0_24px_rgba(255,71,87,0.2)] border-[#FF4757]/30',
-            isThisTimerActive && !isDone && 'border-[#5352ED]/50 shadow-[0_0_20px_rgba(83,82,237,0.15)]',
+            isThisTimerActive && !isDone && 'border-[var(--cal-secondary)]/50',
           )}
         >
           {/* XP badge */}
           {!isDone && (
             <div
               className="absolute top-3 right-8 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold pointer-events-none"
-              style={{ color: '#5352ED', background: 'rgba(83,82,237,0.15)' }}
+              style={{ color: 'var(--cal-secondary)', background: 'rgba(var(--cal-primary-rgb),0.12)' }}
             >
               <Zap className="h-3 w-3" />+{xp} XP
             </div>
@@ -259,7 +259,7 @@ export function TaskCard({
                 title={isThisTimerActive ? 'Timer running' : 'Set timer'}
                 className={cn(
                   'p-1 rounded transition-colors',
-                  isThisTimerActive ? 'text-[#5352ED]' : 'text-white/25 hover:text-[#5352ED]',
+                  isThisTimerActive ? 'text-[var(--cal-secondary)]' : 'text-white/25 hover:text-[var(--cal-secondary)]',
                 )}
               >
                 <Timer className="h-3.5 w-3.5" />
@@ -296,7 +296,7 @@ export function TaskCard({
                         className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
                         style={
                           timerMinutes === p.minutes
-                            ? { background: 'linear-gradient(to right, #5352ED, #1E90FF)', color: '#fff' }
+                            ? { background: 'linear-gradient(to right, var(--cal-secondary), var(--cal-primary))', color: '#fff' }
                             : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
                         }
                       >
@@ -332,7 +332,7 @@ export function TaskCard({
                       <button
                         onClick={handleStartTimer}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition-opacity hover:opacity-85"
-                        style={{ background: 'linear-gradient(to right, #5352ED, #1E90FF)' }}
+                        style={{ background: 'linear-gradient(to right, var(--cal-secondary), var(--cal-primary))' }}
                       >
                         <Timer className="h-3 w-3" />
                         Start

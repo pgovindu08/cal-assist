@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, CalendarDays, CheckSquare, Mail, LogOut } from 'lucide-react';
+import { MessageSquare, CalendarDays, CheckSquare, Mail, Sun, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 
 const navItems = [
+  { href: '/briefing', icon: Sun, label: 'Daily Briefing' },
   { href: '/chat', icon: MessageSquare, label: 'Chat' },
   { href: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
@@ -61,6 +62,20 @@ export function Sidebar() {
 
       {/* User + Logout */}
       <div className="flex flex-col items-center gap-2">
+        <Link href="/settings">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Settings"
+            aria-label="Settings"
+            className={cn(
+              'h-10 w-10 text-muted-foreground hover:text-foreground',
+              pathname.startsWith('/settings') && 'bg-accent text-accent-foreground'
+            )}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </Link>
         <Button
           variant="ghost"
           size="icon"

@@ -11,10 +11,10 @@ import {
   RefreshCw,
   Bell,
   Mail,
+  Sun,
 } from "lucide-react";
 import { TextRotate } from "@/components/ui/text-rotate";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Button } from "@/components/ui/button";
@@ -278,6 +278,9 @@ export default function LoginPage() {
                 CA
               </div>
               <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center">
+                <Sun className="w-4 h-4 text-zinc-400" />
+              </div>
+              <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center">
                 <MessageSquare className="w-4 h-4 text-zinc-400" />
               </div>
               <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -376,42 +379,41 @@ export default function LoginPage() {
       {/* ── Login section ─────────────────────────────────────── */}
       <section
         ref={loginRef}
-        className="flex min-h-screen items-center justify-center px-4 py-20 bg-background"
+        className="relative flex min-h-screen items-center justify-center px-4 py-20 overflow-hidden"
+        style={{ background: 'var(--cal-bg, #0D0F1A)' }}
       >
+        {/* Background glow */}
+        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full opacity-20 blur-3xl"
+          style={{ background: 'var(--cal-primary, #1A56DB)' }} />
+
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="w-full max-w-sm space-y-8"
+          className="relative w-full max-w-sm space-y-8"
         >
           {/* Section logo */}
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-              <CalendarDays className="h-7 w-7" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
+              style={{ background: 'var(--cal-primary, #1A56DB)', boxShadow: 'rgba(var(--cal-primary-rgb,26,86,219),0.35) 0 8px 24px' }}>
+              <CalendarDays className="h-7 w-7 text-white" />
             </div>
-            <h2 className="text-2xl font-bold">Welcome to CalAssist</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h2 className="text-2xl font-bold text-white">Welcome to CalAssist</h2>
+            <p className="mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Sign in or create a free account to get started.
             </p>
           </div>
 
-          {/* Auth card */}
-          <div className="rounded-2xl border border-border bg-card p-8 shadow-sm space-y-5">
+          {/* Auth card — glassmorphism */}
+          <div className="rounded-2xl p-8"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+            }}>
             <AuthForm />
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-2 text-muted-foreground">
-                  or continue with
-                </span>
-              </div>
-            </div>
-
-            <GoogleSignInButton />
           </div>
         </motion.div>
       </section>

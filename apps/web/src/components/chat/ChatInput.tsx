@@ -6,6 +6,7 @@ import { ArrowUp, Mic, MicOff, CalendarDays, CheckSquare, Search, Zap } from 'lu
 import { motion, AnimatePresence } from 'motion/react';
 import { useChatStore } from '@/store/chatStore';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/store/settingsStore';
 
 // ── CalAssist-specific suggestion categories ─────────────────────────────────
 
@@ -71,6 +72,7 @@ export function ChatInput() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const { sendMessage, isLoading, messages } = useChatStore();
+  const { voiceEnabled } = useSettingsStore();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -269,18 +271,20 @@ export function ChatInput() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={toggleVoice}
-            title={isRecording ? 'Stop recording' : 'Voice input'}
-            className={cn(
-              'p-1.5 rounded-full transition-colors',
-              isRecording
-                ? 'text-destructive hover:bg-destructive/10'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
+          {voiceEnabled && (
+            <button
+              onClick={toggleVoice}
+              title={isRecording ? 'Stop recording' : 'Voice input'}
+              className={cn(
+                'p-1.5 rounded-full transition-colors',
+                isRecording
+                  ? 'text-destructive hover:bg-destructive/10'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
           <button
             onClick={handleSend}
             disabled={!value.trim() || isLoading}

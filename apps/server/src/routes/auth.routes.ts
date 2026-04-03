@@ -16,6 +16,7 @@ router.get(
       'profile',
       'email',
       'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/tasks',
     ],
     accessType: 'offline',
     prompt: 'consent', // Force refresh token on every auth

@@ -14,6 +14,10 @@ YOUR CAPABILITIES:
 - List/query upcoming events (intent: LIST_EVENTS)
 - Update existing events (intent: UPDATE_EVENT)
 - Delete events (intent: DELETE_EVENT)
+- Create tasks/to-dos (intent: CREATE_TASK)
+- List tasks (intent: LIST_TASKS)
+- Update tasks (intent: UPDATE_TASK)
+- Delete tasks (intent: DELETE_TASK)
 - Answer general questions (intent: GENERAL_QUESTION)
 
 BEHAVIOR RULES:
@@ -26,15 +30,22 @@ BEHAVIOR RULES:
 7. Keep the reply field conversational and brief (1-3 sentences).
 8. Never invent attendee email addresses. Only include emails explicitly stated by the user.
 9. If confidence is below 0.7, set needsClarification: true.
-10. For GENERAL_QUESTION intent, do not populate the event field.
+10. For GENERAL_QUESTION intent, do not populate the event or task fields.
 11. Always respond in the same language the user writes in.
 12. For UPDATE_EVENT and DELETE_EVENT, populate targetEventId if the user refers to a known event ID.
+13. For UPDATE_TASK and DELETE_TASK, populate targetTaskId if the user refers to a known task ID.
+14. Keywords like "task", "todo", "remind me to", "don't forget to", "to-do" suggest task intents. Keywords like "meeting", "appointment", "event", "schedule", "book" suggest calendar event intents.
+15. For tasks: priority defaults to MEDIUM. Use HIGH for urgent/important/ASAP, LOW for someday/whenever.
+16. For task due dates, output as an ISO 8601 datetime string. If no time is mentioned, use end of day (23:59:59).
 
-You must return valid JSON only — no markdown, no code fences, no explanation. Example for a user in UTC-5:
-{"intent":"CREATE_EVENT","reply":"Done! Added your dentist appointment for Friday at 2pm.","confidence":0.97,"event":{"title":"Dentist appointment","description":null,"location":null,"startDateTime":"2026-04-03T14:00:00-05:00","endDateTime":"2026-04-03T15:00:00-05:00","attendees":null,"allDay":false,"recurrence":null},"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null}`;
+You must return valid JSON only — no markdown, no code fences, no explanation. Example for a CREATE_TASK in UTC-5:
+{"intent":"CREATE_TASK","reply":"Got it! Added 'Buy groceries' to your tasks.","confidence":0.97,"event":null,"task":{"title":"Buy groceries","notes":null,"dueDate":"2026-04-03T23:59:59-05:00","priority":"MEDIUM","status":"TODO","recurrence":null},"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}
+
+Example for a CREATE_EVENT in UTC-5:
+{"intent":"CREATE_EVENT","reply":"Done! Added your dentist appointment for Friday at 2pm.","confidence":0.97,"event":{"title":"Dentist appointment","description":null,"location":null,"startDateTime":"2026-04-03T14:00:00-05:00","endDateTime":"2026-04-03T15:00:00-05:00","attendees":null,"allDay":false,"recurrence":null},"task":null,"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}`;
 
 const responseSchema = z.object({
-  intent: z.enum(['CREATE_EVENT', 'LIST_EVENTS', 'UPDATE_EVENT', 'DELETE_EVENT', 'GENERAL_QUESTION', 'NONE']),
+  intent: z.enum(['CREATE_EVENT', 'LIST_EVENTS', 'UPDATE_EVENT', 'DELETE_EVENT', 'CREATE_TASK', 'LIST_TASKS', 'UPDATE_TASK', 'DELETE_TASK', 'GENERAL_QUESTION', 'NONE']),
   reply: z.string(),
   confidence: z.number().min(0).max(1),
   event: z.object({
@@ -47,10 +58,19 @@ const responseSchema = z.object({
     allDay: z.boolean(),
     recurrence: z.string().nullable().optional(),
   }).nullable().optional(),
+  task: z.object({
+    title: z.string(),
+    notes: z.string().nullable().optional(),
+    dueDate: z.string().nullable().optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+    recurrence: z.string().nullable().optional(),
+  }).nullable().optional(),
   queryRange: z.object({ start: z.string(), end: z.string() }).nullable().optional(),
   needsClarification: z.boolean(),
   clarificationQuestion: z.string().nullable().optional(),
   targetEventId: z.string().nullable().optional(),
+  targetTaskId: z.string().nullable().optional(),
 });
 
 export type AIIntent =
@@ -58,6 +78,10 @@ export type AIIntent =
   | 'LIST_EVENTS'
   | 'UPDATE_EVENT'
   | 'DELETE_EVENT'
+  | 'CREATE_TASK'
+  | 'LIST_TASKS'
+  | 'UPDATE_TASK'
+  | 'DELETE_TASK'
   | 'GENERAL_QUESTION'
   | 'NONE';
 
@@ -72,15 +96,26 @@ export interface AIEventPayload {
   recurrence?: string | null;
 }
 
+export interface AITaskPayload {
+  title: string;
+  notes?: string | null;
+  dueDate?: string | null;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  recurrence?: string | null;
+}
+
 export interface AIResponse {
   intent: AIIntent;
   reply: string;
   confidence: number;
   event?: AIEventPayload | null;
+  task?: AITaskPayload | null;
   queryRange?: { start: string; end: string } | null;
   needsClarification: boolean;
   clarificationQuestion?: string | null;
   targetEventId?: string | null;
+  targetTaskId?: string | null;
 }
 
 interface HistoryMessage {

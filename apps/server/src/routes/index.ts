@@ -3,6 +3,7 @@ import authRoutes from './auth.routes';
 import chatRoutes from './chat.routes';
 import calendarRoutes from './calendar.routes';
 import eventsRoutes from './events.routes';
+import tasksRoutes from './tasks.routes';
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.use('/auth', authRoutes);
 router.use('/chat', chatRoutes);
 router.use('/calendar', calendarRoutes);
 router.use('/events', eventsRoutes);
+router.use('/tasks', tasksRoutes);
 
 export default router;

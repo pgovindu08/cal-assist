@@ -25,6 +25,7 @@ model User {
   sessions Session[]
   messages Message[]
   events   Event[]
+  tasks    Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,5 +102,48 @@ enum CalendarAction {
   LIST_EVENTS
   UPDATE_EVENT
   DELETE_EVENT
+  CREATE_TASK
+  LIST_TASKS
+  UPDATE_TASK
+  DELETE_TASK
   NONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  notes       String?      @db.Text
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  recurrence  String?      // RRULE string
+
+  // Optional Google Tasks sync
+  googleTaskId     String?
+  googleTaskListId String?
+
+  // Optional link to a calendar event
+  linkedEventId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, dueDate])
+  @@index([userId, status])
+  @@map("tasks")
 }

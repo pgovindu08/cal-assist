@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
 import { getUserTimezone } from '@/lib/utils';
+import { useTaskStore } from './taskStore';
 
 export interface ChatMessage {
   id: string;
@@ -60,10 +61,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         timezone: getUserTimezone(),
       });
 
+      const msg = data.data.message;
       set((state) => ({
-        messages: [...state.messages, data.data.message],
+        messages: [...state.messages, msg],
         isLoading: false,
       }));
+
+      // Refresh task list if a task mutation happened
+      const taskActions = ['CREATE_TASK', 'UPDATE_TASK', 'DELETE_TASK'];
+      if (taskActions.includes(msg.actionType)) {
+        useTaskStore.getState().fetchTasks();
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: { message?: string } } } };
       const errorText = error.response?.data?.error?.message || 'Something went wrong. Please try again.';

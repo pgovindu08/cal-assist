@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma';
 import { extractIntent } from './gemini.service';
 import * as eventsService from './events.service';
 import * as calendarService from './calendar.service';
+import * as tasksService from './tasks.service';
 import type { CalendarAction } from '@prisma/client';
 
 const CONFIDENCE_THRESHOLD = 0.85;
@@ -13,7 +14,9 @@ export interface ChatResult {
   actionType: CalendarAction | null;
   actionPayload: Record<string, unknown> | null;
   eventId: string | null;
+  taskId: string | null;
   events?: unknown[];
+  tasks?: unknown[];
   requiresConfirmation?: boolean;
   createdAt: Date;
 }
@@ -47,7 +50,9 @@ export async function processMessage(
   let actionType: CalendarAction = 'NONE';
   let actionPayload: Record<string, unknown> | null = null;
   let eventId: string | null = null;
+  let taskId: string | null = null;
   let events: unknown[] | undefined;
+  let tasks: unknown[] | undefined;
   let requiresConfirmation = false;
   let replyContent = geminiResult.reply;
 
@@ -148,6 +153,78 @@ export async function processMessage(
         replyContent = "I couldn't delete that event. Please try again.";
       }
     }
+
+  } else if (geminiResult.intent === 'CREATE_TASK' && geminiResult.task) {
+    actionType = 'CREATE_TASK';
+    const t = geminiResult.task;
+    actionPayload = {
+      title: t.title,
+      notes: t.notes ?? undefined,
+      dueDate: t.dueDate ?? undefined,
+      priority: t.priority ?? 'MEDIUM',
+      status: t.status ?? 'TODO',
+      recurrence: t.recurrence ?? undefined,
+    };
+
+    try {
+      const created = await tasksService.createTask(userId, {
+        title: t.title,
+        notes: t.notes ?? undefined,
+        dueDate: t.dueDate ? new Date(t.dueDate) : undefined,
+        priority: (t.priority ?? 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH',
+        status: (t.status ?? 'TODO') as 'TODO' | 'IN_PROGRESS' | 'DONE',
+        recurrence: t.recurrence ?? undefined,
+      });
+      taskId = created.id;
+    } catch {
+      replyContent = "I understood what you want, but had trouble saving the task. Please try again.";
+    }
+
+  } else if (geminiResult.intent === 'LIST_TASKS') {
+    actionType = 'LIST_TASKS';
+    try {
+      const range = geminiResult.queryRange;
+      tasks = await tasksService.listTasks(userId, {
+        dueStart: range?.start ? new Date(range.start) : undefined,
+        dueEnd: range?.end ? new Date(range.end) : undefined,
+      });
+      if ((tasks as unknown[]).length === 0) {
+        replyContent = geminiResult.reply || "You have no tasks for that period.";
+      }
+    } catch {
+      replyContent = "I couldn't fetch your tasks right now. Please try again.";
+    }
+
+  } else if (geminiResult.intent === 'UPDATE_TASK' && geminiResult.task) {
+    actionType = 'UPDATE_TASK';
+    const targetId = geminiResult.targetTaskId;
+    if (targetId) {
+      const t = geminiResult.task;
+      try {
+        const updated = await tasksService.updateTask(userId, targetId, {
+          ...(t.title && { title: t.title }),
+          ...(t.notes !== undefined && { notes: t.notes ?? undefined }),
+          ...(t.dueDate !== undefined && { dueDate: t.dueDate ? new Date(t.dueDate) : undefined }),
+          ...(t.priority && { priority: t.priority as 'LOW' | 'MEDIUM' | 'HIGH' }),
+          ...(t.status && { status: t.status as 'TODO' | 'IN_PROGRESS' | 'DONE' }),
+        });
+        taskId = updated.id;
+      } catch {
+        replyContent = "I couldn't update that task. Please try again.";
+      }
+    }
+
+  } else if (geminiResult.intent === 'DELETE_TASK') {
+    actionType = 'DELETE_TASK';
+    const targetId = geminiResult.targetTaskId;
+    if (targetId) {
+      try {
+        await tasksService.deleteTask(userId, targetId);
+        taskId = targetId;
+      } catch {
+        replyContent = "I couldn't delete that task. Please try again.";
+      }
+    }
   }
 
   const assistantMessage = await prisma.message.create({
@@ -156,7 +233,7 @@ export async function processMessage(
       role: 'ASSISTANT',
       content: replyContent,
       actionType,
-      actionPayload: actionPayload ?? undefined,
+      actionPayload: actionPayload ? (actionPayload as object) : undefined,
       eventId,
     },
   });
@@ -168,7 +245,9 @@ export async function processMessage(
     actionType,
     actionPayload,
     eventId,
+    taskId,
     events,
+    tasks,
     requiresConfirmation,
     createdAt: assistantMessage.createdAt,
   };
@@ -187,6 +266,7 @@ export async function confirmEventCreation(userId: string, messageId: string): P
       actionType: null,
       actionPayload: null,
       eventId: null,
+      taskId: null,
       createdAt: new Date(),
     };
   }
@@ -233,6 +313,7 @@ export async function confirmEventCreation(userId: string, messageId: string): P
     actionType: 'CREATE_EVENT',
     actionPayload: payload,
     eventId,
+    taskId: null,
     createdAt: new Date(),
   };
 }

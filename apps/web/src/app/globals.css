@@ -85,6 +85,44 @@
 [data-card-style="solid"]    { --cal-card-backdrop: none;       --cal-card-bg: #1A1D2E; }
 [data-card-style="outlined"] { --cal-card-backdrop: none;       --cal-card-bg: transparent; }
 
+/* ── Dock component hover magnification ─────────────────────────────────── */
+.calassist-dock .dock-icon {
+  width: var(--icon-size, 55px);
+  height: var(--icon-size, 55px);
+  padding-left: calc(var(--icon-size, 55px) * 0.075);
+  padding-right: calc(var(--icon-size, 55px) * 0.075);
+}
+
+.calassist-dock .dock-icon:hover {
+  width: calc(var(--icon-size, 55px) * 1.5);
+  height: calc(var(--icon-size, 55px) * 1.5);
+  margin-top: calc(var(--icon-size, 55px) * -0.5);
+}
+
+.calassist-dock .dock-icon:hover + .dock-icon {
+  width: calc(var(--icon-size, 55px) * 1.33 + var(--dock-offset-right, 0px));
+  height: calc(var(--icon-size, 55px) * 1.33 + var(--dock-offset-right, 0px));
+  margin-top: calc(var(--icon-size, 55px) * -0.33 + var(--dock-offset-right, 0) * -1);
+}
+
+.calassist-dock .dock-icon:hover + .dock-icon + .dock-icon {
+  width: calc(var(--icon-size, 55px) * 1.17 + var(--dock-offset-right, 0px));
+  height: calc(var(--icon-size, 55px) * 1.17 + var(--dock-offset-right, 0px));
+  margin-top: calc(var(--icon-size, 55px) * -0.17 + var(--dock-offset-right, 0) * -1);
+}
+
+.calassist-dock .dock-icon:has(+ .dock-icon:hover) {
+  width: calc(var(--icon-size, 55px) * 1.33 + var(--dock-offset-left, 0px));
+  height: calc(var(--icon-size, 55px) * 1.33 + var(--dock-offset-left, 0px));
+  margin-top: calc(var(--icon-size, 55px) * -0.33 + var(--dock-offset-left, 0) * -1);
+}
+
+.calassist-dock .dock-icon:has(+ .dock-icon + .dock-icon:hover) {
+  width: calc(var(--icon-size, 55px) * 1.17 + var(--dock-offset-left, 0px));
+  height: calc(var(--icon-size, 55px) * 1.17 + var(--dock-offset-left, 0px));
+  margin-top: calc(var(--icon-size, 55px) * -0.17 + var(--dock-offset-left, 0) * -1);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

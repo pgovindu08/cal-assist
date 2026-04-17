@@ -38,11 +38,40 @@ BEHAVIOR RULES:
 15. For tasks: priority defaults to MEDIUM. Use HIGH for urgent/important/ASAP, LOW for someday/whenever.
 16. For task due dates, output as an ISO 8601 datetime string. If no time is mentioned, use end of day (23:59:59).
 
+RECURRING EVENTS & TASKS:
+17. When the user wants a recurring event or task, populate the recurrence field with a valid RRULE string (RFC 5545 format). Always prefix with "RRULE:".
+18. RRULE examples:
+    - "every day" → "RRULE:FREQ=DAILY"
+    - "every weekday" (Mon–Fri) → "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+    - "every Monday" → "RRULE:FREQ=WEEKLY;BYDAY=MO"
+    - "every Tuesday and Thursday" → "RRULE:FREQ=WEEKLY;BYDAY=TU,TH"
+    - "every week" / "weekly" → "RRULE:FREQ=WEEKLY"
+    - "every 2 weeks" → "RRULE:FREQ=WEEKLY;INTERVAL=2"
+    - "every month" / "monthly" → "RRULE:FREQ=MONTHLY"
+    - "every month on the 15th" → "RRULE:FREQ=MONTHLY;BYMONTHDAY=15"
+    - "every year" / "annually" → "RRULE:FREQ=YEARLY"
+    - "every Monday for 4 weeks" → "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=4"
+    - "every day until December 31" → "RRULE:FREQ=DAILY;UNTIL=20261231T235959Z"
+19. WHEN TO ASK FOR CLARIFICATION on recurring events — set needsClarification: true and ask a specific clarificationQuestion if ANY of these are missing:
+    a. Frequency is vague (e.g. "recurring meeting", "repeat this event", "make it recurring") — ask: "How often should this repeat? (e.g. daily, weekly, every Monday)"
+    b. Weekly recurrence but no day specified (e.g. "weekly meeting") — ask: "Which day(s) of the week? (e.g. every Monday, every Tuesday and Thursday)"
+    c. Time is missing for a recurring event — ask: "What time should this start each time?"
+    d. User says "for a few weeks" or "for a while" without a count or end date — ask: "How many times should it repeat, or when should it end?"
+20. If the user provides enough detail for recurrence (frequency + day/time for weekly events), do NOT ask for clarification — generate the RRULE directly.
+21. If an end condition (COUNT or UNTIL) is not specified, omit it from the RRULE (the event repeats indefinitely).
+22. For recurring events, use the first occurrence date/time as startDateTime and endDateTime.
+
 You must return valid JSON only — no markdown, no code fences, no explanation. Example for a CREATE_TASK in UTC-5:
 {"intent":"CREATE_TASK","reply":"Got it! Added 'Buy groceries' to your tasks.","confidence":0.97,"event":null,"task":{"title":"Buy groceries","notes":null,"dueDate":"2026-04-03T23:59:59-05:00","priority":"MEDIUM","status":"TODO","recurrence":null},"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}
 
 Example for a CREATE_EVENT in UTC-5:
-{"intent":"CREATE_EVENT","reply":"Done! Added your dentist appointment for Friday at 2pm.","confidence":0.97,"event":{"title":"Dentist appointment","description":null,"location":null,"startDateTime":"2026-04-03T14:00:00-05:00","endDateTime":"2026-04-03T15:00:00-05:00","attendees":null,"allDay":false,"recurrence":null},"task":null,"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}`;
+{"intent":"CREATE_EVENT","reply":"Done! Added your dentist appointment for Friday at 2pm.","confidence":0.97,"event":{"title":"Dentist appointment","description":null,"location":null,"startDateTime":"2026-04-03T14:00:00-05:00","endDateTime":"2026-04-03T15:00:00-05:00","attendees":null,"allDay":false,"recurrence":null},"task":null,"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}
+
+Example for a recurring CREATE_EVENT (every Monday at 10am, UTC-5):
+{"intent":"CREATE_EVENT","reply":"Done! I've scheduled your weekly team standup every Monday at 10am.","confidence":0.95,"event":{"title":"Team Standup","description":null,"location":null,"startDateTime":"2026-04-14T10:00:00-05:00","endDateTime":"2026-04-14T11:00:00-05:00","attendees":null,"allDay":false,"recurrence":"RRULE:FREQ=WEEKLY;BYDAY=MO"},"task":null,"queryRange":null,"needsClarification":false,"clarificationQuestion":null,"targetEventId":null,"targetTaskId":null}
+
+Example when recurrence details are missing (vague "weekly meeting"):
+{"intent":"CREATE_EVENT","reply":"I'd love to set that up! Just need a couple more details.","confidence":0.6,"event":null,"task":null,"queryRange":null,"needsClarification":true,"clarificationQuestion":"Which day of the week should your weekly meeting be, and what time does it start?","targetEventId":null,"targetTaskId":null}`;
 
 const responseSchema = z.object({
   intent: z.enum(['CREATE_EVENT', 'LIST_EVENTS', 'UPDATE_EVENT', 'DELETE_EVENT', 'CREATE_TASK', 'LIST_TASKS', 'UPDATE_TASK', 'DELETE_TASK', 'GENERAL_QUESTION', 'NONE']),

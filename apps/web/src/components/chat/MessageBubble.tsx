@@ -47,6 +47,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               startDateTime: string;
               endDateTime: string;
               allDay: boolean;
+              recurrence?: string | null;
             }}
           />
         )}

@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(textutil -convert txt -stdout \"/Users/pranavgovindu/College/Coding_Projects/Side Projects/Calender_App/CalAssist_PRD_v2.docx\")"
-    ]
-  }
-}

@@ -9,10 +9,11 @@ import { env } from '../config/env';
 import type { AuthenticatedRequest } from '../middleware/authenticate';
 
 const REFRESH_COOKIE_NAME = 'calassist_refresh';
+const isProduction = env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: 'lax' as const, // 'strict' breaks OAuth cross-site redirects
+  secure: isProduction,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -27,11 +28,21 @@ export async function googleCallback(
 
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, COOKIE_OPTIONS);
 
-    // Redirect to frontend with access token in query param
-    // The frontend extracts it and stores in memory
-    res.redirect(
-      `${env.FRONTEND_URL}/auth/callback?token=${encodeURIComponent(accessToken)}`
-    );
+    // Detect platform — iOS app passes ?platform=ios which is encoded in OAuth state
+    const platform = (req as any).oauthPlatform || 'web';
+
+    if (platform === 'ios') {
+      // Redirect back to iOS app via custom URL scheme
+      // ASWebAuthenticationSession will intercept calassist://auth/callback
+      res.redirect(
+        `calassist://auth/callback?token=${encodeURIComponent(accessToken)}`
+      );
+    } else {
+      // Standard web redirect
+      res.redirect(
+        `${env.FRONTEND_URL}/auth/callback?token=${encodeURIComponent(accessToken)}`
+      );
+    }
   } catch (err) {
     next(err);
   }

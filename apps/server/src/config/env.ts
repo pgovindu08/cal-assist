@@ -35,7 +35,8 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-  // App
+  // App — comma-separated list of allowed frontend origins
+  // e.g. "http://localhost:3000,https://your-app.vercel.app"
   FRONTEND_URL: z.string().default('http://localhost:3000'),
 });
 
